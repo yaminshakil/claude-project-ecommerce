@@ -3,45 +3,187 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, ShoppingBag, Truck, Shield, RefreshCw } from 'lucide-react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { ArrowRight, ShoppingBag, Truck, Shield, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '@/lib/api';
 import { storageUrl } from '@/lib/storage';
 import { Product, Category, PaginatedResponse, ApiResponse } from '@/types';
 import ProductCard from '@/components/store/ProductCard';
 
+const SLIDES = [
+  {
+    id: 1,
+    badge: 'New Season Arrivals',
+    heading: 'Shop the Latest\nTrends Online',
+    headingAccent: 'Trends Online',
+    sub: 'Discover thousands of products at unbeatable prices. Free shipping on orders over $50.',
+    cta: { label: 'Shop Now', href: '/products' },
+    ctaSecondary: { label: 'View Featured', href: '/products?is_featured=1' },
+    bg: 'from-blue-600 via-blue-700 to-indigo-800',
+    accent: 'text-blue-200',
+    shape1: 'bg-blue-500/30',
+    shape2: 'bg-indigo-400/20',
+  },
+  {
+    id: 2,
+    badge: 'Hot Deals This Week',
+    heading: 'Unbeatable Prices\nEvery Day',
+    headingAccent: 'Every Day',
+    sub: 'Save big on top brands. Limited-time offers across electronics, fashion, and more.',
+    cta: { label: 'See Deals', href: '/products?sort=price_asc' },
+    ctaSecondary: { label: 'All Products', href: '/products' },
+    bg: 'from-rose-500 via-pink-600 to-fuchsia-700',
+    accent: 'text-rose-200',
+    shape1: 'bg-pink-400/30',
+    shape2: 'bg-fuchsia-400/20',
+  },
+  {
+    id: 3,
+    badge: 'Free Shipping on $50+',
+    heading: 'Everything You\nNeed, Delivered',
+    headingAccent: 'Delivered',
+    sub: 'From electronics to home essentials — browse categories and find exactly what you want.',
+    cta: { label: 'Browse Categories', href: '/categories' },
+    ctaSecondary: { label: 'Shop Now', href: '/products' },
+    bg: 'from-emerald-500 via-teal-600 to-cyan-700',
+    accent: 'text-emerald-200',
+    shape1: 'bg-teal-400/30',
+    shape2: 'bg-cyan-400/20',
+  },
+  {
+    id: 4,
+    badge: 'Top-Rated Products',
+    heading: 'Quality You Can\nTrust & Love',
+    headingAccent: 'Trust & Love',
+    sub: 'Thousands of 5-star reviews. Shop our most popular and highly rated products today.',
+    cta: { label: 'Top Products', href: '/products?sort=popular' },
+    ctaSecondary: { label: 'New Arrivals', href: '/products?sort=latest' },
+    bg: 'from-amber-500 via-orange-500 to-red-600',
+    accent: 'text-amber-200',
+    shape1: 'bg-orange-400/30',
+    shape2: 'bg-red-400/20',
+  },
+];
+
+const INTERVAL = 4500;
+
 function HeroSection() {
+  const [active, setActive] = useState(0);
+  const [animating, setAnimating] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const goTo = useCallback((index: number) => {
+    if (animating) return;
+    setAnimating(true);
+    setActive(index);
+    setTimeout(() => setAnimating(false), 500);
+  }, [animating]);
+
+  const next = useCallback(() => goTo((active + 1) % SLIDES.length), [active, goTo]);
+  const prev = useCallback(() => goTo((active - 1 + SLIDES.length) % SLIDES.length), [active, goTo]);
+
+  const resetTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(next, INTERVAL);
+  }, [next]);
+
+  useEffect(() => {
+    timerRef.current = setInterval(next, INTERVAL);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [next]);
+
+  const handleManual = (fn: () => void) => {
+    fn();
+    resetTimer();
+  };
+
+  const slide = SLIDES[active];
+
   return (
-    <section className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+    <section className={`relative overflow-hidden bg-gradient-to-br ${slide.bg} text-white transition-all duration-700`}>
+      {/* Decorative blobs */}
+      <div className={`absolute -top-16 -right-16 w-72 h-72 rounded-full ${slide.shape1} blur-3xl pointer-events-none transition-all duration-700`} />
+      <div className={`absolute -bottom-20 -left-20 w-96 h-96 rounded-full ${slide.shape2} blur-3xl pointer-events-none transition-all duration-700`} />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 relative">
         <div className="max-w-2xl">
-          <span className="inline-block bg-white/20 text-white text-sm font-medium px-4 py-1.5 rounded-full mb-6">
-            New Season, New Arrivals
+          {/* Badge */}
+          <span
+            key={`badge-${slide.id}`}
+            className="inline-block bg-white/20 text-white text-sm font-medium px-4 py-1.5 rounded-full mb-6 animate-fade-in"
+          >
+            {slide.badge}
           </span>
-          <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6">
-            Shop the Latest
-            <br />
-            <span className="text-blue-200">Trends Online</span>
+
+          {/* Heading */}
+          <h1
+            key={`h-${slide.id}`}
+            className="text-4xl md:text-6xl font-extrabold leading-tight mb-6 animate-slide-up"
+          >
+            {slide.heading.split('\n').map((line, i) =>
+              line === slide.headingAccent ? (
+                <span key={i} className={`block ${slide.accent}`}>{line}</span>
+              ) : (
+                <span key={i} className="block">{line}</span>
+              )
+            )}
           </h1>
-          <p className="text-lg md:text-xl text-blue-100 mb-8 leading-relaxed">
-            Discover thousands of products at unbeatable prices. Free shipping on
-            orders over $50.
+
+          {/* Sub */}
+          <p
+            key={`sub-${slide.id}`}
+            className="text-lg md:text-xl text-white/80 mb-8 leading-relaxed animate-slide-up"
+          >
+            {slide.sub}
           </p>
+
+          {/* CTAs */}
           <div className="flex flex-wrap gap-4">
             <Link
-              href="/products"
-              className="inline-flex items-center gap-2 bg-white text-blue-700 font-semibold px-6 py-3 rounded-xl hover:bg-blue-50 transition-colors shadow-lg"
+              href={slide.cta.href}
+              className="inline-flex items-center gap-2 bg-white text-gray-900 font-semibold px-6 py-3 rounded-xl hover:bg-gray-100 transition-colors shadow-lg"
             >
-              Shop Now
+              {slide.cta.label}
               <ArrowRight size={18} />
             </Link>
             <Link
-              href="/products?is_featured=1"
-              className="inline-flex items-center gap-2 bg-transparent border-2 border-white/60 text-white font-semibold px-6 py-3 rounded-xl hover:bg-white/10 transition-colors"
+              href={slide.ctaSecondary.href}
+              className="inline-flex items-center gap-2 border-2 border-white/60 text-white font-semibold px-6 py-3 rounded-xl hover:bg-white/10 transition-colors"
             >
-              View Featured
+              {slide.ctaSecondary.label}
             </Link>
           </div>
         </div>
+      </div>
+
+      {/* Prev / Next arrows */}
+      <button
+        onClick={() => handleManual(prev)}
+        aria-label="Previous slide"
+        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white rounded-full p-2 transition-colors backdrop-blur-sm"
+      >
+        <ChevronLeft size={22} />
+      </button>
+      <button
+        onClick={() => handleManual(next)}
+        aria-label="Next slide"
+        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white rounded-full p-2 transition-colors backdrop-blur-sm"
+      >
+        <ChevronRight size={22} />
+      </button>
+
+      {/* Dot indicators */}
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2">
+        {SLIDES.map((s, i) => (
+          <button
+            key={s.id}
+            onClick={() => handleManual(() => goTo(i))}
+            aria-label={`Go to slide ${i + 1}`}
+            className={`rounded-full transition-all duration-300 ${
+              i === active ? 'w-6 h-2.5 bg-white' : 'w-2.5 h-2.5 bg-white/40 hover:bg-white/70'
+            }`}
+          />
+        ))}
       </div>
     </section>
   );

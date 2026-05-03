@@ -70,8 +70,8 @@ export default function ProductsPage({ searchParams }: ProductsPageProps) {
       if (isFeatured) queryParams.is_featured = 1;
       if (minPrice) queryParams.min_price = minPrice;
       if (maxPrice) queryParams.max_price = maxPrice;
-      const res = await api.get<PaginatedResponse<Product>>('/products', { params: queryParams });
-      return res.data;
+      const res = await api.get<ApiResponse<PaginatedResponse<Product>>>('/products', { params: queryParams });
+      return res.data.data;
     },
   });
 

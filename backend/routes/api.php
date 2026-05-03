@@ -41,6 +41,11 @@ Route::get('/products', [StoreProductController::class, 'index']);
 Route::get('/products/{slug}', [StoreProductController::class, 'show']);
 Route::get('/categories', [StoreCategoryController::class, 'index']);
 Route::get('/categories/{slug}', [StoreCategoryController::class, 'show']);
+Route::get('/brands', fn () => response()->json([
+    'success' => true,
+    'message' => 'Brands retrieved successfully.',
+    'data'    => \App\Models\Brand::where('is_active', true)->orderBy('name')->get(),
+]));
 Route::post('/coupons/validate', [CouponController::class, 'validate']);
 
 // -------------------------------------------------------------------------
